@@ -2,7 +2,7 @@
 
 An interactive conceptual-design tool for the wing and main spar of a small RC airplane (the "PACTM"). Pick an airfoil, change the aspect ratio, taper, stall speed, mass and structural limits, and watch the lift distributions, spar deflection, requirement checks and feasible region update live.
 
-**Live site:** `https://<your-github-username>.github.io/<repo-name>/` (see "Publishing" below).
+**Live site:** https://corrigk.github.io/pactm-wing-explorer/ (served from the `docs/` folder by GitHub Pages).
 
 ## What it models
 
@@ -51,9 +51,9 @@ python scripts/export_web_data.py
 
 ## Publishing on GitHub Pages
 
-1. Create a new public repository on GitHub and push this folder to it.
+1. Push this repository to GitHub (it is a public repository).
 2. In the repository: **Settings → Pages → Build and deployment → Source: Deploy from a branch**, choose branch `main` and folder `/docs`, then Save.
-3. After a minute the site is live at `https://<your-github-username>.github.io/<repo-name>/`.
+3. After a minute the site is live at https://corrigk.github.io/pactm-wing-explorer/.
 
 ## Sources and notes
 
