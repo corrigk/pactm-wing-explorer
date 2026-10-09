@@ -4,6 +4,15 @@ An interactive conceptual-design tool for the wing and main spar of a small RC a
 
 **Live site:** https://corrigk.github.io/pactm-wing-explorer/ (served from the `docs/` folder by GitHub Pages).
 
+## Features
+
+- Every input has a slider and a typed number box (typed values may go beyond the slider range, within physical limits).
+- **Reset to HW6 requirements** restores the HW6 Problem 3 mission and limits and jumps to the best design for the selected airfoil.
+- Requirement cards with gauges and on/off switches; a feasible-region map (click or drag to move the design); a live best-design table for all six airfoils.
+- Planform coloured by section c_l, the tip section with the spar drawn to scale plus a magnified fit detail, and an orbitable 3D view of the wing bent under the design load.
+- Shareable links (the URL stores the design), dark and light themes.
+- Fast: the lifting-line solution depends only on AR and taper, so it is solved once per (AR, λ) and cached; grids run in a Web Worker.
+
 ## What it models
 
 - Untwisted wing with one airfoil and a single linear taper; Prandtl lifting line (40 stations, section lift slope 2π).

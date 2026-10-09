@@ -33,6 +33,23 @@ def naca4(code, n=100):
     return xy
 
 
+def naca5(code, n=100):
+    """Coordinates of a NACA 230xx airfoil (standard 230 mean line, closed TE), Selig ordering."""
+    if code[:3] != "230":
+        raise ValueError("only the 230 mean line is implemented")
+    m, k1, t = 0.2025, 15.957, int(code[3:]) / 100
+    x = 0.5 * (1 - np.cos(np.linspace(0, np.pi, n)))
+    yt = 5 * t * (0.2969 * np.sqrt(x) - 0.126 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1036 * x**4)
+    yc = np.where(x < m, k1 / 6 * (x**3 - 3 * m * x**2 + m**2 * (3 - m) * x), k1 * m**3 / 6 * (1 - x))
+    dyc = np.where(x < m, k1 / 6 * (3 * x**2 - 6 * m * x + m**2 * (3 - m)), -k1 * m**3 / 6)
+    th = np.arctan(dyc)
+    up = np.c_[x - yt * np.sin(th), yc + yt * np.cos(th)][::-1]
+    lo = np.c_[x + yt * np.sin(th), yc - yt * np.cos(th)][1:]
+    xy = np.vstack([up, lo])
+    xy[-1] = xy[0]
+    return xy
+
+
 def _influence(P, A, B):
     """(u, w) global velocity at points P from unit-strength linear vorticity on panel A->B.
 

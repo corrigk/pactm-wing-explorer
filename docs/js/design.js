@@ -1,8 +1,8 @@
 // Design evaluation, requirement checks, grid search (port of src/design_space.py).
 import { CONST, CONSTRAINTS } from './config.js';
-import { Wing, HALF_GRID } from './liftingLine.js';
+import { Wing } from './liftingLine.js';
 import { computeCD0 } from './drag.js';
-import { halfWingLoads, requiredI, sizeSpar, tipDeflectionIntegral } from './spar.js';
+import { sizeSpar } from './spar.js';
 import { linspace } from './numerics.js';
 
 /** Weight, wing C_L^max and the planform area that gives the stall speed. */
@@ -26,17 +26,16 @@ export function evaluate(af, AR, lam, p) {
   const CLland = (2 * W * Math.cos((p.descentDeg * Math.PI) / 180)) / (CONST.rho * Vland ** 2 * S);
   const alphaLand = wing.alphaForCL(CLland, aL0);
 
-  // loads at cruise lift; the landing c_l(y) has the same shape scaled by CLland/CLcr (untwisted wing)
-  const loads = halfWingLoads(wing, CLcr, { ...p, W });
-  const dist = wing.distribution(CLcr, HALF_GRID);
-  const clPeakCruise = Math.max(...dist.cl);
-  const clPeakLand = (clPeakCruise * CLland) / CLcr;
+  // bending and peak c_l come from the cached (AR, lambda) shape: O(1) per design
+  const q = 0.5 * CONST.rho * p.vCruise ** 2;
+  const { Mroot, tipIntegral } = wing.bending(CLcr, p.loadFactor, q);
+  const clPeakCruise = wing.peakCl(CLcr);
+  const clPeakLand = (clPeakCruise * CLland) / CLcr;      // untwisted wing: same c_l shape
   const landRatio = clPeakLand / af.clmax;
 
-  const Ireq = requiredI(loads, b, p);
-  const Mroot = loads.moment[0];
+  const Ireq = tipIntegral / (p.deflFrac * b * p.E);
   const spar = sizeSpar(Ireq, Mroot, wing.ct, af.tc, p);
-  const deltaTip = tipDeflectionIntegral(loads) / (p.E * spar.I);
+  const deltaTip = tipIntegral / (p.E * spar.I);
 
   const cd0 = computeCD0(p.vCruise, af.tc, S, b);
   const CDi = wing.CDi(CLcr);

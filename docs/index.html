@@ -1,113 +1,165 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PACTM Wing Explorer</title>
-<meta name="description" content="Interactive lifting-line wing and spar design explorer for an RC airplane.">
+<meta name="description" content="Interactive lifting-line wing and spar design explorer for the PACTM RC airplane: live lift distributions, spar sizing, requirement checks and a feasible-region map.">
+<meta name="theme-color" content="#000000">
+<script>
+  try { const t = localStorage.getItem('pactm-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/design.js">
+<link rel="modulepreload" href="js/liftingLine.js">
+<link rel="modulepreload" href="js/airfoilData.js">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23000'/%3E%3Cpath d='M4 19c6-6 18-7 24-3-8-1-16 0-24 3z' fill='%23cfb991'/%3E%3C/svg%3E">
 </head>
 <body>
-<header class="top">
-  <div>
-    <h1>PACTM Wing Explorer</h1>
-    <div class="sub">Untwisted tapered wing · Prandtl lifting line · solid-wood cantilever spar · sea level</div>
-  </div>
-  <div class="actions">
-    <button class="btn" id="btn-copy" type="button">Copy link to this design</button>
-    <button class="btn" id="btn-reset" type="button">Reset</button>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+        <rect width="40" height="40" rx="9" fill="#cfb991"/>
+        <path d="M5 24c7-8 23-9 30-4-10-1.5-20 0-30 4z" fill="#000"/>
+        <path d="M5 24c10-3 20-4 30-4" stroke="#000" stroke-width="1.2" fill="none" opacity=".5"/>
+      </svg>
+      <div>
+        <h1>PACTM <span>Wing Explorer</span></h1>
+        <div class="sub">Lifting-line wing &amp; spar design · untwisted, linearly tapered · sea level</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn gold" id="btn-hw6" type="button" title="Restore every HW6 mission requirement and limit, then jump to the best design for the selected airfoil">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        <span class="lbl">Reset to HW6 requirements</span>
+      </button>
+      <button class="btn" id="btn-copy" type="button" title="Copy a link that reopens this exact design">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        <span class="lbl" id="copy-lbl">Copy link</span>
+      </button>
+      <button class="btn icon" id="btn-theme" type="button" aria-label="Switch between dark and light theme" title="Dark / light theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>
+      </button>
+      <a class="btn icon" href="https://github.com/corrigk/pactm-wing-explorer" target="_blank" rel="noopener" aria-label="Source code on GitHub" title="Source code on GitHub">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.7 1.7.2 2.9.1 3.2.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"/></svg>
+      </a>
+    </div>
   </div>
 </header>
 
 <div class="layout">
-  <aside class="controls card" aria-label="Design controls">
-    <h2>Airfoil</h2>
-    <select id="airfoil" aria-label="Airfoil"></select>
-    <div class="facts" id="airfoil-facts"></div>
-    <label class="field"><span class="row"><span>α<sub>L0</sub> adjustment</span><span class="val" id="v-aL0Shift"></span></span>
-      <input type="range" id="aL0Shift" min="-3" max="3" step="0.1"></label>
-
-    <h3>Wing design</h3>
-    <label class="field"><span class="row"><span>Aspect ratio, AR</span><span class="val" id="v-AR"></span></span>
-      <input type="range" id="AR" min="4" max="22" step="0.05"></label>
-    <label class="field"><span class="row"><span>Taper ratio, λ = c<sub>tip</sub>/c<sub>root</sub></span><span class="val" id="v-lam"></span></span>
-      <input type="range" id="lam" min="0.2" max="1" step="0.01"></label>
-    <button class="btn primary" id="btn-best" type="button" style="width:100%">Apply best design for these settings</button>
-    <div class="facts" id="best-note"></div>
-
-    <h3>Mission</h3>
-    <label class="field"><span class="row"><span>Mass</span><span class="val" id="v-mass"></span></span>
-      <input type="range" id="mass" min="1.5" max="5" step="0.05"></label>
-    <label class="field"><span class="row"><span>Cruise speed</span><span class="val" id="v-vCruise"></span></span>
-      <input type="range" id="vCruise" min="10" max="25" step="0.5"></label>
-    <label class="field"><span class="row"><span>Stall speed (sets wing area)</span><span class="val" id="v-vStall"></span></span>
-      <input type="range" id="vStall" min="6" max="13" step="0.1"></label>
-    <label class="field"><span class="row"><span>Wing C<sub>L</sub><sup>max</sup> = factor × c<sub>l,max</sub></span><span class="val" id="v-knockdown"></span></span>
-      <input type="range" id="knockdown" min="0.6" max="1" step="0.01"></label>
-
-    <details>
-      <summary>Structure and limits</summary>
-      <label class="field"><span class="row"><span>Tip deflection limit (% of span)</span><span class="val" id="v-deflPct"></span></span>
-        <input type="range" id="deflPct" min="1" max="8" step="0.1"></label>
-      <label class="field"><span class="row"><span>Load factor</span><span class="val" id="v-loadFactor"></span></span>
-        <input type="range" id="loadFactor" min="1" max="6" step="0.1"></label>
-      <label class="field"><span class="row"><span>Young's modulus E</span><span class="val" id="v-Egpa"></span></span>
-        <input type="range" id="Egpa" min="3" max="14" step="0.1"></label>
-      <label class="field"><span class="row"><span>Yield strength</span><span class="val" id="v-yieldMpa"></span></span>
-        <input type="range" id="yieldMpa" min="10" max="60" step="0.5"></label>
-      <label class="field"><span class="row"><span>Rect. spar width ≤ × tip chord</span><span class="val" id="v-widthFrac"></span></span>
-        <input type="range" id="widthFrac" min="0.1" max="0.6" step="0.01"></label>
-      <label class="field"><span class="row"><span>Span limit</span><span class="val" id="v-spanMax"></span></span>
-        <input type="range" id="spanMax" min="1.2" max="3" step="0.05"></label>
-      <label class="field"><span class="row"><span>Cruise α window, upper</span><span class="val" id="v-alphaMax"></span></span>
-        <input type="range" id="alphaMax" min="0" max="8" step="0.5"></label>
-      <label class="field"><span class="row"><span>Cruise α window, lower</span><span class="val" id="v-alphaMin"></span></span>
-        <input type="range" id="alphaMin" min="-6" max="2" step="0.5"></label>
-    </details>
+  <aside class="sidebar" aria-label="Design inputs">
+    <div class="card">
+      <details class="group" open>
+        <summary>Airfoil</summary>
+        <div class="group-body">
+          <div class="select"><select id="airfoil" aria-label="Airfoil"></select></div>
+          <svg class="af-thumb" id="af-thumb" viewBox="0 0 300 64" aria-hidden="true"></svg>
+          <div class="facts" id="af-facts"></div>
+          <div id="g-airfoil"></div>
+          <div class="note-warn" id="af-warn"></div>
+        </div>
+      </details>
+      <details class="group" open>
+        <summary>Wing design</summary>
+        <div class="group-body">
+          <div id="g-design" style="display:grid;gap:14px"></div>
+          <button class="main-btn" id="btn-best" type="button">Apply best design for these settings</button>
+          <div class="best-line" id="best-note"></div>
+        </div>
+      </details>
+      <details class="group" open>
+        <summary>Mission</summary>
+        <div class="group-body" id="g-mission"></div>
+      </details>
+      <details class="group">
+        <summary>Structure</summary>
+        <div class="group-body" id="g-structure"></div>
+      </details>
+      <details class="group">
+        <summary>Limits</summary>
+        <div class="group-body" id="g-limits"></div>
+      </details>
+    </div>
   </aside>
 
-  <main class="stack">
-    <section class="card" aria-live="polite">
+  <main class="content">
+    <section class="hero" aria-live="polite">
+      <div class="status" id="status"></div>
       <div class="kpis" id="kpis"></div>
     </section>
 
     <section class="card">
-      <h2>Requirements <span class="note">(tick to include a requirement in the feasible region and the best-design search)</span></h2>
+      <div class="card-head"><h2 class="card-title">Requirements</h2><span class="hint">Untick a requirement to drop it from the feasible region and the best-design search</span></div>
       <div class="reqs" id="reqs"></div>
     </section>
 
+    <section class="card">
+      <div class="card-head">
+        <h2 class="card-title">Planform</h2>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+          <div class="colorbar" id="pf-colorbar"></div>
+          <div class="seg" role="group" aria-label="Colour the planform by"><button type="button" data-pf="cruise" aria-pressed="true">Cruise c<sub>l</sub></button><button type="button" data-pf="land" aria-pressed="false">Landing c<sub>l</sub></button></div>
+        </div>
+      </div>
+      <div class="planform" id="planform"></div>
+    </section>
+
     <div class="grid2">
-      <section class="card"><h2>Section lift coefficient along the span</h2><div class="legend" id="lg-cl"></div><div class="chart" id="ch-cl"></div></section>
-      <section class="card"><h2>Lift per unit span at cruise</h2><div class="legend" id="lg-lp"></div><div class="chart" id="ch-lp"></div></section>
-      <section class="card"><h2>Spar deflection at the design load</h2><div class="legend" id="lg-df"></div><div class="chart" id="ch-df"></div></section>
-      <section class="card"><h2>Bending moment at the design load</h2><div class="legend" id="lg-bm"></div><div class="chart" id="ch-bm"></div></section>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Tip section &amp; spar</h2><span class="hint" id="sec-hint"></span></div>
+        <div class="section" id="section"></div>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">3D view at design load</h2>
+          <div class="seg" role="group" aria-label="Deflection exaggeration"><button type="button" data-ex="1" aria-pressed="false">1×</button><button type="button" data-ex="3" aria-pressed="true">3×</button><button type="button" data-ex="8" aria-pressed="false">8×</button></div>
+        </div>
+        <div class="view3d"><canvas id="wing3d" aria-label="Three-dimensional view of the wing bent under the design load. Drag to rotate."></canvas><div class="overlay" id="w3d-note"></div></div>
+      </section>
+    </div>
+
+    <div class="grid2">
+      <section class="card"><div class="card-head"><h2 class="card-title">Section lift coefficient</h2></div><div class="legend" id="lg-cl"></div><div class="chart" id="ch-cl"></div></section>
+      <section class="card"><div class="card-head"><h2 class="card-title">Lift per unit span · cruise</h2></div><div class="legend" id="lg-lp"></div><div class="chart" id="ch-lp"></div></section>
+      <section class="card"><div class="card-head"><h2 class="card-title">Spar deflection · design load</h2></div><div class="legend" id="lg-df"></div><div class="chart" id="ch-df"></div></section>
+      <section class="card"><div class="card-head"><h2 class="card-title">Bending moment · design load</h2></div><div class="legend" id="lg-bm"></div><div class="chart" id="ch-bm"></div></section>
     </div>
 
     <section class="card">
-      <h2>Feasible region for this airfoil <span class="note">(click or drag to move the design)</span></h2>
-      <div class="mapwrap"><canvas id="map" aria-label="Feasible region map of aspect ratio versus taper ratio"></canvas><div class="tip" id="map-tip"></div></div>
+      <div class="card-head"><h2 class="card-title">Feasible region</h2><span class="hint">Click or drag to move the design · hover for details</span></div>
+      <div class="mapwrap"><canvas id="map" aria-label="Feasible region of aspect ratio and taper ratio for the selected airfoil"></canvas><div class="tip" id="map-tip"></div></div>
       <div class="maplegend" id="map-legend"></div>
     </section>
 
     <section class="card">
-      <h2>All airfoils: best design for the current settings</h2>
-      <div class="scroll-x"><table class="tbl" id="tbl"></table></div>
+      <div class="card-head"><h2 class="card-title">All airfoils · best design for the current settings</h2><span class="hint">Click a row to switch airfoil</span></div>
+      <div class="scroll-x"><table class="tbl" id="tbl"><tr><td class="loading">Computing…</td></tr></table></div>
     </section>
 
-    <section class="card note">
-      <h2>Model and assumptions</h2>
+    <section class="card notes">
+      <div class="card-head"><h2 class="card-title">Model &amp; assumptions</h2></div>
       <ul>
-        <li>Wing area S is set by the stall speed: S = 2W / (ρ V<sub>stall</sub>² C<sub>L</sub><sup>max</sup>), with C<sub>L</sub><sup>max</sup> = factor × c<sub>l,max</sub> at Re = 300,000.</li>
-        <li>Untwisted wing, one airfoil, single linear taper from root to tip, section lift slope 2π, 40 lifting-line stations.</li>
-        <li>Cruise C<sub>L</sub> = 2W / (ρ V² S). Landing at 1.2 V<sub>stall</sub> on a 3° path uses L = W cos γ. Landing stall check: peak c<sub>l</sub> against the airfoil c<sub>l,max</sub> (linear lifting-line c<sub>l</sub>, no stall-onset modelling).</li>
-        <li>Drag: HW1 component build-up for C<sub>D0</sub> (wing, tail, fuselage; depends on t/c only) plus lifting-line induced drag.</li>
-        <li>Spar: solid wood, constant cross-section cantilever, sized to just meet the tip-deflection limit under the load-factor × cruise lift distribution, rounded up to whole mm. Wing weight and inertia relief are ignored. Rectangle depth ≤ (t/c) × tip chord and width ≤ the width cap × tip chord; round diameter ≤ (t/c) × tip chord.</li>
-        <li>α<sub>L0</sub> for S1223 is uncertain (about −8.8° to −13° depending on method). Use the α<sub>L0</sub> adjustment to see how sensitive a design is.</li>
-        <li>This is a conceptual-design tool, not a certified analysis.</li>
+        <li>Wing area from the stall speed: S = 2W / (ρ V<sub>stall</sub>² C<sub>L</sub><sup>max</sup>), with C<sub>L</sub><sup>max</sup> = factor × c<sub>l,max</sub> (XFLR5 polars, Re = 300,000, N<sub>crit</sub> = 9).</li>
+        <li>Untwisted wing, one airfoil, single linear taper, unswept quarter-chord line, section lift slope 2π, Prandtl lifting line with 40 stations.</li>
+        <li>Cruise C<sub>L</sub> = 2W / (ρ V² S). Landing at the landing-speed factor × V<sub>stall</sub> on the descent angle with L = W cos γ. Landing stall check: peak lifting-line c<sub>l</sub> against the airfoil c<sub>l,max</sub> (no stall-onset modelling).</li>
+        <li>Drag: component build-up for C<sub>D0</sub> (wing, tail, fuselage; depends on t/c only) plus lifting-line induced drag.</li>
+        <li>Spar: solid wood, constant cross-section cantilever, sized to just meet the tip-deflection limit under load factor × the cruise lift distribution, rounded up to whole mm. Wing weight and inertia relief ignored. Rectangle depth ≤ (t/c) × tip chord and width ≤ the width cap × tip chord; round diameter ≤ (t/c) × tip chord.</li>
+        <li>The S1223 zero-lift angle is uncertain (about −8.8° to −13° depending on the method). Use the α<sub>L0</sub> adjustment to test sensitivity.</li>
+        <li>Conceptual-design tool for learning; not a certified structural or aerodynamic analysis.</li>
       </ul>
     </section>
   </main>
 </div>
+<footer>
+  <span>Student project for the PACTM RC airplane. Colours inspired by Purdue; not an official Purdue University website.</span>
+  <span><a href="https://github.com/corrigk/pactm-wing-explorer" target="_blank" rel="noopener">Source &amp; Python reference code on GitHub</a></span>
+</footer>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

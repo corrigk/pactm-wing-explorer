@@ -13,10 +13,41 @@ import numpy as np  # noqa: E402
 import config as cfg  # noqa: E402
 import airfoil_data  # noqa: E402
 import design_space as ds  # noqa: E402
+import panel  # noqa: E402
 
 WEB_JS = ROOT / "docs" / "js" / "airfoilData.js"
 REFERENCE = ROOT / "tests" / "js_reference.json"
 POLAR_STEP = 0.5   # deg, thinned polar grid for the web page
+N_COORD = 61       # cosine-spaced x stations per surface for the drawings
+COORDS = {         # airfoil -> coordinate source (.dat in data/airfoils, or a generated NACA section)
+    "NACA 2415": ("naca4", "2415"),
+    "NACA 23015": ("naca5", "23015"),
+    "NACA 64-212": ("dat", "n64212.dat"),
+    "S1223": ("dat", "s1223.dat"),
+    "S7062": ("dat", "sd7062.dat"),
+    "HW4 (PACTM iter3)": ("dat", cfg.HW4_DAT),
+}
+
+
+def coords(name):
+    """Upper and lower surface y at common cosine-spaced x (LE -> TE), plus max-thickness location."""
+    kind, src = COORDS[name]
+    if kind == "naca4":
+        xy = panel.naca4(src, 121)
+    elif kind == "naca5":
+        xy = panel.naca5(src, 121)
+    else:
+        xy = np.loadtxt(airfoil_data.find_file(src), skiprows=1)
+    le = xy[:, 0].argmin()
+    up, lo = xy[: le + 1][::-1], xy[le:]
+    x = 0.5 * (1 - np.cos(np.linspace(0, np.pi, N_COORD)))
+    yu = np.interp(x, up[:, 0], up[:, 1])
+    yl = np.interp(x, lo[:, 0], lo[:, 1])
+    fine = np.linspace(0, 1, 2001)
+    t = np.interp(fine, up[:, 0], up[:, 1]) - np.interp(fine, lo[:, 0], lo[:, 1])
+    return dict(x=[round(float(v), 5) for v in x], yu=[round(float(v), 5) for v in yu],
+                yl=[round(float(v), 5) for v in yl], xt=round(float(fine[t.argmax()]), 4),
+                tcGeom=round(float(t.max()), 4))
 
 
 def polar_thinned(fname):
@@ -37,7 +68,7 @@ def main():
         a, cl, cd, cm = polar_thinned(fname)
         data[name] = dict(
             clmax=round(float(r["clmax"]), 5), aStall=float(r["a_stall"]), aL0=round(float(r["aL0"]), 4),
-            tc=round(float(r["tc"]), 5), aL0Method=cfg.AIRFOILS[name][1],
+            tc=round(float(r["tc"]), 5), aL0Method=cfg.AIRFOILS[name][1], coords=coords(name),
             polar=dict(alpha=[round(float(v), 2) for v in a], cl=[round(float(v), 4) for v in cl],
                        cd=[round(float(v), 5) for v in cd], cm=[round(float(v), 4) for v in cm]))
     WEB_JS.parent.mkdir(parents=True, exist_ok=True)
