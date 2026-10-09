@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Personal / course material kept out of the public repo
+CLAUDE.md
+legacy_code/
+outputs/
+data/hw6_p2/
+
+# Editor and OS
+.vscode/
+.DS_Store
+Thumbs.db
+node_modules/
+
+# unused coordinate file (NACA 66-212, not part of the study)
+data/airfoils/naca661212.dat

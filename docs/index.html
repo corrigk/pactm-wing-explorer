@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PACTM Wing Explorer</title>
+<meta name="description" content="Interactive lifting-line wing and spar design explorer for an RC airplane.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>PACTM Wing Explorer</h1>
+    <div class="sub">Untwisted tapered wing · Prandtl lifting line · solid-wood cantilever spar · sea level</div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btn-copy" type="button">Copy link to this design</button>
+    <button class="btn" id="btn-reset" type="button">Reset</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="controls card" aria-label="Design controls">
+    <h2>Airfoil</h2>
+    <select id="airfoil" aria-label="Airfoil"></select>
+    <div class="facts" id="airfoil-facts"></div>
+    <label class="field"><span class="row"><span>α<sub>L0</sub> adjustment</span><span class="val" id="v-aL0Shift"></span></span>
+      <input type="range" id="aL0Shift" min="-3" max="3" step="0.1"></label>
+
+    <h3>Wing design</h3>
+    <label class="field"><span class="row"><span>Aspect ratio, AR</span><span class="val" id="v-AR"></span></span>
+      <input type="range" id="AR" min="4" max="22" step="0.05"></label>
+    <label class="field"><span class="row"><span>Taper ratio, λ = c<sub>tip</sub>/c<sub>root</sub></span><span class="val" id="v-lam"></span></span>
+      <input type="range" id="lam" min="0.2" max="1" step="0.01"></label>
+    <button class="btn primary" id="btn-best" type="button" style="width:100%">Apply best design for these settings</button>
+    <div class="facts" id="best-note"></div>
+
+    <h3>Mission</h3>
+    <label class="field"><span class="row"><span>Mass</span><span class="val" id="v-mass"></span></span>
+      <input type="range" id="mass" min="1.5" max="5" step="0.05"></label>
+    <label class="field"><span class="row"><span>Cruise speed</span><span class="val" id="v-vCruise"></span></span>
+      <input type="range" id="vCruise" min="10" max="25" step="0.5"></label>
+    <label class="field"><span class="row"><span>Stall speed (sets wing area)</span><span class="val" id="v-vStall"></span></span>
+      <input type="range" id="vStall" min="6" max="13" step="0.1"></label>
+    <label class="field"><span class="row"><span>Wing C<sub>L</sub><sup>max</sup> = factor × c<sub>l,max</sub></span><span class="val" id="v-knockdown"></span></span>
+      <input type="range" id="knockdown" min="0.6" max="1" step="0.01"></label>
+
+    <details>
+      <summary>Structure and limits</summary>
+      <label class="field"><span class="row"><span>Tip deflection limit (% of span)</span><span class="val" id="v-deflPct"></span></span>
+        <input type="range" id="deflPct" min="1" max="8" step="0.1"></label>
+      <label class="field"><span class="row"><span>Load factor</span><span class="val" id="v-loadFactor"></span></span>
+        <input type="range" id="loadFactor" min="1" max="6" step="0.1"></label>
+      <label class="field"><span class="row"><span>Young's modulus E</span><span class="val" id="v-Egpa"></span></span>
+        <input type="range" id="Egpa" min="3" max="14" step="0.1"></label>
+      <label class="field"><span class="row"><span>Yield strength</span><span class="val" id="v-yieldMpa"></span></span>
+        <input type="range" id="yieldMpa" min="10" max="60" step="0.5"></label>
+      <label class="field"><span class="row"><span>Rect. spar width ≤ × tip chord</span><span class="val" id="v-widthFrac"></span></span>
+        <input type="range" id="widthFrac" min="0.1" max="0.6" step="0.01"></label>
+      <label class="field"><span class="row"><span>Span limit</span><span class="val" id="v-spanMax"></span></span>
+        <input type="range" id="spanMax" min="1.2" max="3" step="0.05"></label>
+      <label class="field"><span class="row"><span>Cruise α window, upper</span><span class="val" id="v-alphaMax"></span></span>
+        <input type="range" id="alphaMax" min="0" max="8" step="0.5"></label>
+      <label class="field"><span class="row"><span>Cruise α window, lower</span><span class="val" id="v-alphaMin"></span></span>
+        <input type="range" id="alphaMin" min="-6" max="2" step="0.5"></label>
+    </details>
+  </aside>
+
+  <main class="stack">
+    <section class="card" aria-live="polite">
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section class="card">
+      <h2>Requirements <span class="note">(tick to include a requirement in the feasible region and the best-design search)</span></h2>
+      <div class="reqs" id="reqs"></div>
+    </section>
+
+    <div class="grid2">
+      <section class="card"><h2>Section lift coefficient along the span</h2><div class="legend" id="lg-cl"></div><div class="chart" id="ch-cl"></div></section>
+      <section class="card"><h2>Lift per unit span at cruise</h2><div class="legend" id="lg-lp"></div><div class="chart" id="ch-lp"></div></section>
+      <section class="card"><h2>Spar deflection at the design load</h2><div class="legend" id="lg-df"></div><div class="chart" id="ch-df"></div></section>
+      <section class="card"><h2>Bending moment at the design load</h2><div class="legend" id="lg-bm"></div><div class="chart" id="ch-bm"></div></section>
+    </div>
+
+    <section class="card">
+      <h2>Feasible region for this airfoil <span class="note">(click or drag to move the design)</span></h2>
+      <div class="mapwrap"><canvas id="map" aria-label="Feasible region map of aspect ratio versus taper ratio"></canvas><div class="tip" id="map-tip"></div></div>
+      <div class="maplegend" id="map-legend"></div>
+    </section>
+
+    <section class="card">
+      <h2>All airfoils: best design for the current settings</h2>
+      <div class="scroll-x"><table class="tbl" id="tbl"></table></div>
+    </section>
+
+    <section class="card note">
+      <h2>Model and assumptions</h2>
+      <ul>
+        <li>Wing area S is set by the stall speed: S = 2W / (ρ V<sub>stall</sub>² C<sub>L</sub><sup>max</sup>), with C<sub>L</sub><sup>max</sup> = factor × c<sub>l,max</sub> at Re = 300,000.</li>
+        <li>Untwisted wing, one airfoil, single linear taper from root to tip, section lift slope 2π, 40 lifting-line stations.</li>
+        <li>Cruise C<sub>L</sub> = 2W / (ρ V² S). Landing at 1.2 V<sub>stall</sub> on a 3° path uses L = W cos γ. Landing stall check: peak c<sub>l</sub> against the airfoil c<sub>l,max</sub> (linear lifting-line c<sub>l</sub>, no stall-onset modelling).</li>
+        <li>Drag: HW1 component build-up for C<sub>D0</sub> (wing, tail, fuselage; depends on t/c only) plus lifting-line induced drag.</li>
+        <li>Spar: solid wood, constant cross-section cantilever, sized to just meet the tip-deflection limit under the load-factor × cruise lift distribution, rounded up to whole mm. Wing weight and inertia relief are ignored. Rectangle depth ≤ (t/c) × tip chord and width ≤ the width cap × tip chord; round diameter ≤ (t/c) × tip chord.</li>
+        <li>α<sub>L0</sub> for S1223 is uncertain (about −8.8° to −13° depending on method). Use the α<sub>L0</sub> adjustment to see how sensitive a design is.</li>
+        <li>This is a conceptual-design tool, not a certified analysis.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

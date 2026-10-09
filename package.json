@@ -1,0 +1,8 @@
+{
+  "name": "pactm-wing-explorer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/js/test_js_matches_python.mjs"
+  }
+}
