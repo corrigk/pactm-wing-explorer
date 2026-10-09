@@ -14,3 +14,4 @@ jobs:
         with:
           node-version: 20
       - run: node tests/js/test_js_matches_python.mjs
+      - run: node tests/js/test_importers.mjs

@@ -27,7 +27,8 @@ export function bestFor(af, p, on) {
 
 export function runJob(job, post) {
   const { id, airfoil, p, on, table } = job;
-  const af = AIRFOILS[airfoil];
+  const all = job.airfoils || AIRFOILS;               // built-in plus any user-added airfoils
+  const af = all[airfoil];
   const { ars, lams, arMax } = mapGrid(af, p);
   const nA = ars.length, nL = lams.length;
   const fields = Object.fromEntries(CONSTRAINTS.map((k) => [k, new Float32Array(nA * nL)]));
@@ -43,6 +44,6 @@ export function runJob(job, post) {
   post({ id, type: 'map', ars, lams, fields, LD, arMax, on, best: bestFor(af, p, on) },
     [...Object.values(fields).map((f) => f.buffer), LD.buffer]);
   if (!table) return;
-  const rows = Object.keys(AIRFOILS).map((name) => ({ name, ...bestFor(AIRFOILS[name], p, on) }));
+  const rows = Object.keys(all).map((name) => ({ name, ...bestFor(all[name], p, on) }));
   post({ id, type: 'table', rows });
 }

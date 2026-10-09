@@ -4,14 +4,18 @@ import { color } from './plot.js';
 
 const f1 = (v) => v.toFixed(1);
 
-/** Sequential gold ramp for c_l / c_l,max in [0, 1]; red above 1 (stalled). */
-export function rampColor(t) {
+/** Sequential gold ramp for a ratio in [0, 1] as [r, g, b]; red at or above 1 (stalled / yielded). */
+export function rampRgb(t, forSurface = false) {
   const dark = document.documentElement.dataset.theme !== 'light';
-  if (t >= 1) return color('bad');
-  const lo = dark ? [42, 36, 24] : [246, 240, 226];
-  const hi = dark ? [242, 206, 92] : [142, 104, 20];
+  if (t >= 1) return [226, 74, 74];
+  const lo = forSurface ? [70, 62, 48] : dark ? [42, 36, 24] : [246, 240, 226];
+  const hi = forSurface ? [250, 214, 100] : dark ? [242, 206, 92] : [142, 104, 20];
   const u = Math.max(0, Math.min(1, t)) ** 0.9;
-  const c = lo.map((v, i) => Math.round(v + (hi[i] - v) * u));
+  return lo.map((v, i) => Math.round(v + (hi[i] - v) * u));
+}
+export function rampColor(t) {
+  if (t >= 1) return color('bad');
+  const c = rampRgb(t);
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
@@ -168,4 +172,24 @@ export function drawThumb(el, coords) {
   const lo = coords.x.map((x, i) => `${f1(ml + x * sc)},${f1(mid - coords.yl[i] * sc)}`);
   el.innerHTML = `<line x1="${ml}" x2="${W - ml}" y1="${mid}" y2="${mid}" stroke="${color('grid')}" stroke-width="1"/>`
     + `<path d="M${up.join(' L')} L${lo.join(' L')} Z" fill="rgba(207,185,145,0.16)" stroke="#cfb991" stroke-width="1.8" stroke-linejoin="round"/>`;
+}
+
+/** Several planforms on one scale (top view, LE up, unswept quarter-chord). designs: [{b, cr, lam, color, label}] */
+export function drawPlanformOverlay(el, designs) {
+  const W = Math.max(320, Math.round(el.clientWidth || 900)), ml = 16, mr = 16, mt = 30 + designs.length * 17;
+  const bMax = Math.max(...designs.map((d) => d.b)), crMax = Math.max(...designs.map((d) => d.cr));
+  const sc = (W - ml - mr) / bMax;
+  const H = Math.round(mt + crMax * sc + 46);
+  const X = (yy) => W / 2 + yy * sc, cq = mt + 0.25 * crMax * sc;   // quarter-chord line shared by all
+  let svg = `<line x1="${X(-bMax / 2)}" x2="${X(bMax / 2)}" y1="${cq}" y2="${cq}" stroke="${color('muted')}" stroke-width="0.8" stroke-dasharray="2 5"/>`;
+  designs.forEach((d, k) => {
+    const ct = d.lam * d.cr, s = d.b / 2;
+    const pts = [[-s, 0.25 * ct], [0, 0.25 * d.cr], [s, 0.25 * ct], [s, -0.75 * ct], [0, -0.75 * d.cr], [-s, -0.75 * ct]]
+      .map(([yy, up]) => `${f1(X(yy))},${f1(cq - up * sc)}`).join(' ');
+    svg += `<polygon points="${pts}" fill="${d.color}" fill-opacity="0.13" stroke="${d.color}" stroke-width="2.2" stroke-linejoin="round" ${k ? 'stroke-dasharray="7 4"' : ''}/>`;
+    svg += `<line x1="${ml}" x2="${ml + 22}" y1="${12 + k * 17}" y2="${12 + k * 17}" stroke="${d.color}" stroke-width="2.4" ${k ? 'stroke-dasharray="7 4"' : ''}/>`
+      + `<text x="${ml + 30}" y="${16 + k * 17}" style="fill:${d.color};font-weight:650">${d.label} · b ${d.b.toFixed(3)} m · S ${(d.b * d.cr * (1 + d.lam) / 2).toFixed(4)} m² · c_r ${(d.cr * 1e3).toFixed(0)} mm · c_t ${(ct * 1e3).toFixed(0)} mm</text>`;
+  });
+  svg += `<line x1="${X(0)}" x2="${X(0)}" y1="${mt - 6}" y2="${H - 8}" stroke="${color('muted')}" stroke-width="1" stroke-dasharray="4 4"/>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Planforms of design A and B to scale">${svg}</svg>`;
 }

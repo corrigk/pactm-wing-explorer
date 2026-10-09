@@ -1,6 +1,7 @@
 // Perspective 3D view of the wing under the design load (canvas 2D, painter's algorithm, flat shading).
 // World axes: X spanwise (m), Y chordwise (+aft, m), Z up (m). Drag to orbit, double-click to reset.
 import { color } from './plot.js';
+import { rampRgb } from './visuals.js';
 
 const DEF_VIEW = { yaw: -0.62, pitch: 0.42 };
 
@@ -9,6 +10,7 @@ export class Wing3D {
     this.cv = canvas; this.note = noteEl;
     this.view = { ...DEF_VIEW };
     this.exag = 3;
+    this.mode = 'gold';
     this.geo = null;
     let drag = null;
     canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, ...this.view }; });
@@ -27,6 +29,14 @@ export class Wing3D {
   /** geo: { b, cr, lam, coords, deflY (root->tip, m), defl (m), tipDefl, loadFactor } */
   set(geo) { this.geo = geo; this.request(); }
   setExag(x) { this.exag = x; this.request(); }
+  setMode(m) { this.mode = m; this.request(); }
+
+  /** Colour field along |y| for the current mode (ratio to its limit), or null for plain gold. */
+  field() {
+    if (this.mode === 'cl') return this.geo.clField;
+    if (this.mode === 'stress') return this.geo.stressField;
+    return null;
+  }
 
   request() {
     if (this.pending) return;
@@ -112,7 +122,7 @@ export class Wing3D {
     const V = stations.map((st) => st.pts.map(toView));
     const faces = [];
     const L = (() => { const v = [-0.35, -0.55, 0.76]; const n = Math.hypot(...v); return v.map((q) => q / n); })();
-    const pushFace = (pts, centroidRef) => {
+    const pushFace = (pts, centroidRef, yAbs) => {
       const [a, b2, c] = pts;
       const u = [b2[0] - a[0], b2[1] - a[1], b2[2] - a[2]], w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
       let n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
@@ -122,21 +132,30 @@ export class Wing3D {
       if (n[0] * out[0] + n[1] * out[1] + n[2] * out[2] < 0) n = n.map((q) => -q);
       const toCam = [-m[0], -D - m[1], -m[2]];
       if (n[0] * toCam[0] + n[1] * toCam[1] + n[2] * toCam[2] <= 0) return;
-      faces.push({ pts, depth: m[1], light: n[0] * L[0] + n[1] * L[1] + n[2] * L[2], n });
+      faces.push({ pts, depth: m[1], light: n[0] * L[0] + n[1] * L[1] + n[2] * L[2], n, yAbs });
     };
     for (let j = 0; j < V.length - 1; j++) {
       const ca = V[j].reduce((a, p) => [a[0] + p[0], a[1] + p[1], a[2] + p[2]], [0, 0, 0]).map((q) => q / loopLen);
       const cb = V[j + 1].reduce((a, p) => [a[0] + p[0], a[1] + p[1], a[2] + p[2]], [0, 0, 0]).map((q) => q / loopLen);
       const cm = [(ca[0] + cb[0]) / 2, (ca[1] + cb[1]) / 2, (ca[2] + cb[2]) / 2];
-      for (let i = 0; i < loopLen - 1; i++) pushFace([V[j][i], V[j][i + 1], V[j + 1][i + 1], V[j + 1][i]], cm);
+      const ya = 0.5 * (Math.abs(stations[j].yy) + Math.abs(stations[j + 1].yy));
+      for (let i = 0; i < loopLen - 1; i++) pushFace([V[j][i], V[j][i + 1], V[j + 1][i + 1], V[j + 1][i]], cm, ya);
     }
     const centroid = (pts) => pts.reduce((a, p) => [a[0] + p[0], a[1] + p[1], a[2] + p[2]], [0, 0, 0]).map((q) => q / pts.length);
-    pushFace(V[0].slice(0, loopLen - 1), centroid(V[1]));                       // tip caps: neighbour is inside
-    pushFace(V[V.length - 1].slice(0, loopLen - 1), centroid(V[V.length - 2]));
+    pushFace(V[0].slice(0, loopLen - 1), centroid(V[1]), Math.abs(stations[0].yy));               // tip caps: neighbour is inside
+    pushFace(V[V.length - 1].slice(0, loopLen - 1), centroid(V[V.length - 2]), Math.abs(stations[V.length - 1].yy));
     faces.sort((p, q) => q.depth - p.depth);
     const dark = document.documentElement.dataset.theme !== 'light';
-    const base = [207, 185, 145];
+    const gold = [207, 185, 145];
+    const fld = this.field();
+    const at = (ya) => {
+      const { y, v } = fld;
+      if (ya <= y[0]) return v[0];
+      for (let i = 1; i < y.length; i++) if (ya <= y[i]) return v[i - 1] + ((v[i] - v[i - 1]) * (ya - y[i - 1])) / (y[i] - y[i - 1]);
+      return v[v.length - 1];
+    };
     for (const fc of faces) {
+      const base = fld ? rampRgb(at(fc.yAbs), true) : gold;
       const k = (dark ? 0.32 : 0.45) + 0.68 * Math.max(0, fc.light);
       const spec = Math.max(0, fc.light) ** 18 * 0.35;
       const c = base.map((v) => Math.min(255, Math.round(v * k + 255 * spec)));
@@ -167,6 +186,9 @@ export class Wing3D {
     ctx.beginPath(); ctx.moveTo(pA[0], pA[1]); ctx.lineTo(pB[0], pB[1]); ctx.stroke();
     ctx.fillStyle = color('ink'); ctx.font = `600 ${12 * dpr}px Inter, system-ui, sans-serif`; ctx.textAlign = 'left';
     ctx.fillText(`δ tip ${(this.geo.tipDefl * 1e3).toFixed(0)} mm`, Math.min(pB[0] + 8 * dpr, cv.width - 110 * dpr), (pA[1] + pB[1]) / 2);
-    if (this.note) this.note.textContent = `${this.geo.loadFactor.toFixed(1)} g design load · deflection drawn ×${this.exag} · drag to orbit, double-click to reset`;
+    if (this.note) {
+      const what = this.mode === 'cl' ? 'colour: cruise c_l / c_l,max' : this.mode === 'stress' ? 'colour: spar σ / yield at the design load' : '';
+      this.note.textContent = `${this.geo.loadFactor.toFixed(1)} g design load · deflection ×${this.exag}${what ? ' · ' + what : ''} · drag to orbit, double-click to reset`;
+    }
   }
 }

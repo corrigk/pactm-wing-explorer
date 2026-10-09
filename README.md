@@ -10,7 +10,11 @@ An interactive conceptual-design tool for the wing and main spar of a small RC a
 - **Reset to HW6 requirements** restores the HW6 Problem 3 mission and limits and jumps to the best design for the selected airfoil.
 - Requirement cards with gauges and on/off switches; a feasible-region map (click or drag to move the design); a live best-design table for all six airfoils.
 - Planform coloured by section c_l, the tip section with the spar drawn to scale plus a magnified fit detail, and an orbitable 3D view of the wing bent under the design load.
-- Shareable links (the URL stores the design), dark and light themes.
+- **Add your own airfoil**: drop in a coordinate file (Selig or Lednicer .dat) and a polar export (XFLR5/Flow5 or XFOIL). The page reads c_l,max and α_L0 from the polar (switching to a 0°–4° fit when the c_l = 0 crossing is on a separated branch), t/c from the shape, and runs an inviscid panel method as an α_L0 cross-check. Everything stays in your browser.
+- **Compare tab**: two designs side by side (any airfoil, AR, taper), with a metric table, planforms to scale and overlaid lift, deflection and polar charts.
+- **Airfoil polar view**: c_l–α and drag polar with the most heavily loaded section at cruise and landing marked on the airfoil's own data, and the lifting-line 2π model for comparison.
+- 3D view coloured by gold, section c_l or spar bending stress.
+- Shareable links (the URL stores the design and the comparison), dark and light themes.
 - Fast: the lifting-line solution depends only on AR and taper, so it is solved once per (AR, λ) and cached; grids run in a Web Worker.
 
 ## What it models
@@ -50,7 +54,10 @@ then open http://localhost:8000. (Opening `index.html` directly from disk does n
 ```bash
 python tests/test_reproduce.py       # Python checks (needs numpy)
 node tests/js/test_js_matches_python.mjs   # JavaScript vs Python (needs Node 18+)
+node tests/js/test_importers.mjs           # .dat / polar parsing and the panel method vs Python
 ```
+
+After changing anything in `docs/js/`, bump the `?v=` number in `docs/index.html` (import map and main script) so browsers do not mix cached and new modules.
 
 If you change the Python model or the airfoil data, regenerate the web data and the reference values first:
 

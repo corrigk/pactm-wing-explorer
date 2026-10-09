@@ -13,10 +13,27 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
-<link rel="modulepreload" href="js/main.js">
-<link rel="modulepreload" href="js/design.js">
-<link rel="modulepreload" href="js/liftingLine.js">
-<link rel="modulepreload" href="js/airfoilData.js">
+<!-- Module version: bump v= on every deploy so browsers never mix cached and new modules. -->
+<script type="importmap">
+{
+  "imports": {
+    "./js/config.js": "./js/config.js?v=7",
+    "./js/numerics.js": "./js/numerics.js?v=7",
+    "./js/liftingLine.js": "./js/liftingLine.js?v=7",
+    "./js/drag.js": "./js/drag.js?v=7",
+    "./js/spar.js": "./js/spar.js?v=7",
+    "./js/design.js": "./js/design.js?v=7",
+    "./js/airfoilData.js": "./js/airfoilData.js?v=7",
+    "./js/plot.js": "./js/plot.js?v=7",
+    "./js/map.js": "./js/map.js?v=7",
+    "./js/visuals.js": "./js/visuals.js?v=7",
+    "./js/wing3d.js": "./js/wing3d.js?v=7",
+    "./js/jobs.js": "./js/jobs.js?v=7",
+    "./js/importers.js": "./js/importers.js?v=7"
+  }
+}
+</script>
+<link rel="modulepreload" href="js/main.js?v=7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23000'/%3E%3Cpath d='M4 19c6-6 18-7 24-3-8-1-16 0-24 3z' fill='%23cfb991'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -63,6 +80,8 @@
           <div class="facts" id="af-facts"></div>
           <div id="g-airfoil"></div>
           <div class="note-warn" id="af-warn"></div>
+          <button class="main-btn" id="btn-add" type="button">＋ Add your own airfoil (.dat + polar)</button>
+          <div class="custom-list" id="custom-list"></div>
         </div>
       </details>
       <details class="group" open>
@@ -89,6 +108,11 @@
   </aside>
 
   <main class="content">
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button role="tab" id="tab-btn-design" aria-selected="true" aria-controls="tab-design" type="button">Design</button>
+      <button role="tab" id="tab-btn-compare" aria-selected="false" aria-controls="tab-compare" type="button">Compare</button>
+    </nav>
+    <div id="tab-design" role="tabpanel" aria-labelledby="tab-btn-design" class="tabpanel">
     <section class="hero" aria-live="polite">
       <div class="status" id="status"></div>
       <div class="kpis" id="kpis"></div>
@@ -118,11 +142,23 @@
       <section class="card">
         <div class="card-head">
           <h2 class="card-title">3D view at design load</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="seg" role="group" aria-label="Colour the wing by"><button type="button" data-col="gold" aria-pressed="true">Gold</button><button type="button" data-col="cl" aria-pressed="false">c<sub>l</sub></button><button type="button" data-col="stress" aria-pressed="false">Spar σ</button></div>
           <div class="seg" role="group" aria-label="Deflection exaggeration"><button type="button" data-ex="1" aria-pressed="false">1×</button><button type="button" data-ex="3" aria-pressed="true">3×</button><button type="button" data-ex="8" aria-pressed="false">8×</button></div>
+          </div>
         </div>
         <div class="view3d"><canvas id="wing3d" aria-label="Three-dimensional view of the wing bent under the design load. Drag to rotate."></canvas><div class="overlay" id="w3d-note"></div></div>
       </section>
     </div>
+
+    <section class="card">
+      <div class="card-head"><h2 class="card-title">Airfoil polar · Re 300,000</h2><span class="hint">Dots: the most heavily loaded section at cruise and at landing, placed on the airfoil's own polar</span></div>
+      <div class="grid2 tight">
+        <div><div class="legend" id="lg-pa"></div><div class="chart" id="ch-pa"></div></div>
+        <div><div class="legend" id="lg-pd"></div><div class="chart" id="ch-pd"></div></div>
+      </div>
+      <div class="hint" id="polar-note" style="margin-top:8px"></div>
+    </section>
 
     <div class="grid2">
       <section class="card"><div class="card-head"><h2 class="card-title">Section lift coefficient</h2></div><div class="legend" id="lg-cl"></div><div class="chart" id="ch-cl"></div></section>
@@ -142,6 +178,29 @@
       <div class="scroll-x"><table class="tbl" id="tbl"><tr><td class="loading">Computing…</td></tr></table></div>
     </section>
 
+    </div>
+
+    <div id="tab-compare" role="tabpanel" aria-labelledby="tab-btn-compare" class="tabpanel" hidden>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Compare two designs</h2><span class="hint">Both designs use the mission, structure and limits from the sidebar</span></div>
+        <div class="cmp-slots" id="cmp-slots"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Side by side</h2><span class="hint">Δ = B − A</span></div>
+        <div class="cmp-grid"><div class="scroll-x"><table class="tbl cmp" id="cmp-table"></table></div><div class="scroll-x"><table class="tbl cmp" id="cmp-table2"></table></div></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Planforms to scale</h2></div>
+        <div class="planform" id="cmp-planform"></div>
+      </section>
+      <div class="grid2">
+        <section class="card"><div class="card-head"><h2 class="card-title">Section lift coefficient · cruise &amp; landing</h2></div><div class="legend" id="lg-ccl"></div><div class="chart" id="ch-ccl"></div></section>
+        <section class="card"><div class="card-head"><h2 class="card-title">Lift per unit span · cruise</h2></div><div class="legend" id="lg-clp"></div><div class="chart" id="ch-clp"></div></section>
+        <section class="card"><div class="card-head"><h2 class="card-title">Spar deflection · design load</h2></div><div class="legend" id="lg-cdf"></div><div class="chart" id="ch-cdf"></div></section>
+        <section class="card"><div class="card-head"><h2 class="card-title">Airfoil lift curves</h2></div><div class="legend" id="lg-cpa"></div><div class="chart" id="ch-cpa"></div></section>
+      </div>
+    </div>
+
     <section class="card notes">
       <div class="card-head"><h2 class="card-title">Model &amp; assumptions</h2></div>
       <ul>
@@ -156,10 +215,33 @@
     </section>
   </main>
 </div>
+<dialog id="dlg-add" aria-labelledby="dlg-title">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="dlg-title">Add your own airfoil</h2><button class="btn icon ghost" value="cancel" aria-label="Close">✕</button></div>
+    <p class="hint">Everything stays in your browser; nothing is uploaded. Use a coordinate file (Selig or Lednicer .dat) and a polar export (XFLR5/Flow5 or XFOIL .txt) at the Reynolds number you design for.</p>
+    <div class="drops">
+      <label class="drop" id="drop-dat"><input type="file" id="file-dat" accept=".dat,.txt,.csv"><span class="drop-t">1 · Coordinates</span><span class="drop-s" id="dat-status">Drop or choose a .dat file</span></label>
+      <label class="drop" id="drop-pol"><input type="file" id="file-pol" accept=".txt,.dat,.pol,.csv"><span class="drop-t">2 · Polar</span><span class="drop-s" id="pol-status">Drop or choose a polar .txt</span></label>
+    </div>
+    <div class="preview" id="add-preview" hidden>
+      <svg class="af-thumb" id="add-thumb" viewBox="0 0 300 64" aria-hidden="true"></svg>
+      <div class="add-grid">
+        <label>Name<input type="text" id="add-name" maxlength="40"></label>
+        <label>c<sub>l,max</sub><input type="number" id="add-clmax" step="0.0001"></label>
+        <label>α at c<sub>l,max</sub> [°]<input type="number" id="add-astall" step="0.01"></label>
+        <label>α<sub>L0</sub> [°]<input type="number" id="add-al0" step="0.001"></label>
+        <label>t/c<input type="number" id="add-tc" step="0.0001"></label>
+      </div>
+      <div class="hint" id="add-notes"></div>
+    </div>
+    <div class="dlg-err" id="add-err" role="alert"></div>
+    <div class="dlg-foot"><button class="btn ghost" value="cancel">Cancel</button><button class="btn gold" id="add-ok" value="default" disabled>Add airfoil</button></div>
+  </form>
+</dialog>
 <footer>
   <span>Student project for the PACTM RC airplane. Colours inspired by Purdue; not an official Purdue University website.</span>
   <span><a href="https://github.com/corrigk/pactm-wing-explorer" target="_blank" rel="noopener">Source &amp; Python reference code on GitHub</a></span>
 </footer>
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/main.js?v=7"></script>
 </body>
 </html>
