@@ -62,5 +62,20 @@ AIRFOILS = {
 }
 HW4_DAT = "PACTM_design_iter3.dat"
 
+# ---- HW7 tail and trim (Part 3, Problem 2) ----
+X_AC_W = 0.25                 # wing aerodynamic centre, fraction of the wing MAC
+KAPPA_DOWNWASH = 2.0
+A0_SECTION = 6.283185307179586   # 2 pi
+TAIL_AIRFOIL = "NACA 0012"    # symmetric: alpha_0t = 0 and C_Mac,t = 0  [PROPOSED]
+TAIL_AR = 3.5                 # must stay below the wing AR  [PROPOSED]
+TAIL_TAPER = 1.0              # rectangular  [PROPOSED]
+TAIL_ARM = 1.0                # m, wing AC to tail AC
+SM_TARGET = 0.10
+TAKEOFF_CLT = -0.65           # tail lift coefficient at rotation
+TAKEOFF_CM_REQ = 0.15         # required C_M,cg at rotation
+CG_RANGE_MIN = 0.08           # smallest acceptable feasible CG range, fraction of MAC  [PROPOSED]
+CG_FRACTION = 1 / 3           # target CG position inside the range, from the forward end  [PROPOSED]
+ALPHA_FRL_TRIM = 0.0          # deg, trimmed fuselage-reference angle at cruise  [PROPOSED]
+
 # ---- colours ----
 BLUE, ORANGE = "#2a78d6", "#eb6834"

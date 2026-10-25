@@ -42,7 +42,7 @@ def form_factor_fuselage(D_f, l_f):
 
 
 def compute_CD0(V, t_c_wing, S=cfg.S_PACTM, b=cfg.B_PACTM, t_c_tail=cfg.T_C_TAIL,
-                rho=cfg.RHO, mu=cfg.MU, misc=0.0, parts=False):
+                rho=cfg.RHO, mu=cfg.MU, misc=0.0, parts=False, S_ht=None, c_ht=None):
     """C_D0 referenced to the wing area S. Wing Reynolds length is the mean chord S/b."""
     M = V / cfg.A_SOUND
 
@@ -50,9 +50,16 @@ def compute_CD0(V, t_c_wing, S=cfg.S_PACTM, b=cfg.B_PACTM, t_c_tail=cfg.T_C_TAIL
     term_w = (form_factor_liftingsurface(t_c_wing, M) * cfg.Q_WING * Cf_w
               * wetted_area_liftingsurface(S) / S)
 
-    Cf_t = skin_friction_turbulent(reynolds_number(rho, V, cfg.C_TAIL, mu))
-    term_t = (form_factor_liftingsurface(t_c_tail, M) * cfg.Q_TAIL * Cf_t
-              * wetted_area_liftingsurface(cfg.S_HTAIL + cfg.S_VTAIL) / S)
+    if S_ht is None:      # PACTM tail, h and v combined (HW1 / HW6)
+        Cf_t = skin_friction_turbulent(reynolds_number(rho, V, cfg.C_TAIL, mu))
+        term_t = (form_factor_liftingsurface(t_c_tail, M) * cfg.Q_TAIL * Cf_t
+                  * wetted_area_liftingsurface(cfg.S_HTAIL + cfg.S_VTAIL) / S)
+    else:                 # HW7: designed horizontal tail (area S_ht, chord c_ht) plus the PACTM vertical tail
+        FF = form_factor_liftingsurface(t_c_tail, M)
+        Cf_h = skin_friction_turbulent(reynolds_number(rho, V, c_ht, mu))
+        Cf_v = skin_friction_turbulent(reynolds_number(rho, V, cfg.C_TAIL, mu))
+        term_t = (FF * cfg.Q_TAIL * (Cf_h * wetted_area_liftingsurface(S_ht)
+                                     + Cf_v * wetted_area_liftingsurface(cfg.S_VTAIL)) / S)
 
     Cf_f = skin_friction_turbulent(reynolds_number(rho, V, cfg.L_FUSE, mu))
     term_f = (form_factor_fuselage(cfg.D_FUSE, cfg.L_FUSE) * cfg.Q_FUSE * Cf_f
