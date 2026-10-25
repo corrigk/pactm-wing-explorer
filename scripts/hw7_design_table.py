@@ -31,7 +31,7 @@ def main():
     out, designs = [], {}
     for name, af in rows.items():
         wi = td.wing_inputs(name, af)
-        d = td.design(wi)
+        d = td.design_fit_length(wi)          # l_t shortened so that wing root LE to tail TE = 1.0 m
         designs[name] = d
         a, cl = polar(name)
         sm = tt.stall_metrics(a, cl)
@@ -52,14 +52,15 @@ def main():
         print(f"{r['airfoil']:<19}{r['CD0']:>8.5f}{r['S_w']:>8.4f}{r['AR_w']:>7.2f}{r['S_t']:>8.4f}{r['AR_t']:>6.2f}{r['xcg']:>7.3f}"
               f"{r['SM']:>7.3f}{r['CD']:>8.5f}{r['LD']:>7.2f}{r['i_w_deg']:>7.2f}{r['i_t_deg']:>7.2f}{r['CMac']:>8.4f}  "
               f"{r['stall']}: c_l loss {100 * r['stall_loss2']:.1f}% at +2 deg, {100 * r['stall_loss4']:.1f}% at +4 deg, 95% plateau {r['stall_plateau']:.1f} deg")
-    print("\nOverall length, wing root LE to tail TE, with l_t = 1.0 m (HW limit 1.0 m), and the alternative with l_t shortened to fit:")
-    print(f"{'airfoil':<19}{'L_total':>9}{'flag':>8}   {'l_t':>6}{'S_t':>8}{'x_cg':>7}{'SM':>7}{'L/D':>7}")
+    print("\nTabulated designs: l_t chosen so that wing root LE to tail TE = 1.0 m. For comparison, the same airfoils with l_t = 1.0 m:")
+    print(f"{'airfoil':<19}{'l_t':>7}{'L_total':>9}   {'l_t=1.0 m: L_total':>19}{'S_t':>8}{'x_cg':>7}{'SM':>7}{'L/D':>7}")
     for r in out:
         if not r["feasible"]:
             continue
-        fit = td.design_fit_length(td.wing_inputs(r["airfoil"], rows[r["airfoil"]]))
-        flag = "OVER" if r["L_total"] > 1.0 + 1e-9 else "ok"
-        print(f"{r['airfoil']:<19}{r['L_total']:>9.3f}{flag:>8}   {fit['lt']:>6.3f}{fit['St']:>8.4f}{fit['xcg']:>7.3f}{fit['SM_lecture']:>7.3f}{fit['LD']:>7.2f}")
+        alt = td.design(td.wing_inputs(r["airfoil"], rows[r["airfoil"]]))
+        print(f"{r['airfoil']:<19}{designs[r['airfoil']]['lt']:>7.3f}{r['L_total']:>9.3f}   "
+              f"{td.overall_length(alt['wi'], alt['ct'], alt['lt']):>19.3f}{alt['St']:>8.4f}{alt['xcg']:>7.3f}"
+              f"{alt['SM_lecture']:>7.3f}{alt['LD']:>7.2f}")
     with open(cfg.OUTPUT_DIR / "hw7_design_table.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
         w.writeheader()
