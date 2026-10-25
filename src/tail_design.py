@@ -77,6 +77,26 @@ def design(wi, AR_t=cfg.TAIL_AR, lam_t=cfg.TAIL_TAPER, lt=cfg.TAIL_ARM, SM=cfg.S
                 lines=(stab, to, st), SM_target=SM)
 
 
+def overall_length(wi, ct, lt):
+    """Wing root leading edge to tail trailing edge: 0.25 c_r (unswept quarter-chord line) + l_t + 0.75 c_t."""
+    c_root = 2 * wi["S"] / (wi["b"] * (1 + wi["lam"]))
+    return 0.25 * c_root + lt + 0.75 * ct
+
+
+def design_fit_length(wi, limit=1.0, **kw):
+    """Design with l_t shortened until the overall length (root LE to tail TE) equals `limit` (fixed-point on l_t)."""
+    lt = limit
+    for _ in range(30):
+        d = design(wi, lt=lt, **kw)
+        if not d["feasible"]:
+            return d
+        new = limit - (overall_length(wi, d["ct"], 0.0))
+        if abs(new - lt) < 1e-6:
+            break
+        lt = new
+    return d
+
+
 def trimmed_polar(d, n=60):
     """Trimmed C_L-C_D polar from near 0 to the wing's C_L^max at the chosen CG."""
     wi = d["wi"]

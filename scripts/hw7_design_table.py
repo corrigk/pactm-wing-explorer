@@ -39,6 +39,7 @@ def main():
                    xcg=d.get("xcg"), SM=d.get("SM_lecture"), SM_hw7=d.get("SM_hw7"), CD=d.get("CD"), LD=d.get("LD"),
                    stall=tt.stall_label(sm), stall_loss2=sm["loss2"], stall_loss4=sm["loss4"], stall_plateau=sm["plateau"], i_w_deg=np.degrees(d["i_w"]) if d["feasible"] else None,
                    i_t_deg=np.degrees(d["i_t"]) if d["feasible"] else None, CMac=wi["CMac"], feasible=d["feasible"])
+        row["L_total"] = td.overall_length(wi, d["ct"], d["lt"]) if d["feasible"] else None
         out.append(row)
 
     hdr = (f"{'airfoil':<19}{'C_D0':>8}{'S_w':>8}{'AR_w':>7}{'S_t':>8}{'AR_t':>6}{'x_cg':>7}{'SM':>7}{'C_D':>8}{'L/D':>7}"
@@ -51,6 +52,14 @@ def main():
         print(f"{r['airfoil']:<19}{r['CD0']:>8.5f}{r['S_w']:>8.4f}{r['AR_w']:>7.2f}{r['S_t']:>8.4f}{r['AR_t']:>6.2f}{r['xcg']:>7.3f}"
               f"{r['SM']:>7.3f}{r['CD']:>8.5f}{r['LD']:>7.2f}{r['i_w_deg']:>7.2f}{r['i_t_deg']:>7.2f}{r['CMac']:>8.4f}  "
               f"{r['stall']}: c_l loss {100 * r['stall_loss2']:.1f}% at +2 deg, {100 * r['stall_loss4']:.1f}% at +4 deg, 95% plateau {r['stall_plateau']:.1f} deg")
+    print("\nOverall length, wing root LE to tail TE, with l_t = 1.0 m (HW limit 1.0 m), and the alternative with l_t shortened to fit:")
+    print(f"{'airfoil':<19}{'L_total':>9}{'flag':>8}   {'l_t':>6}{'S_t':>8}{'x_cg':>7}{'SM':>7}{'L/D':>7}")
+    for r in out:
+        if not r["feasible"]:
+            continue
+        fit = td.design_fit_length(td.wing_inputs(r["airfoil"], rows[r["airfoil"]]))
+        flag = "OVER" if r["L_total"] > 1.0 + 1e-9 else "ok"
+        print(f"{r['airfoil']:<19}{r['L_total']:>9.3f}{flag:>8}   {fit['lt']:>6.3f}{fit['St']:>8.4f}{fit['xcg']:>7.3f}{fit['SM_lecture']:>7.3f}{fit['LD']:>7.2f}")
     with open(cfg.OUTPUT_DIR / "hw7_design_table.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
         w.writeheader()
