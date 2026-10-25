@@ -13,6 +13,7 @@ An interactive conceptual-design tool for the wing and main spar of a small RC a
 - **Add your own airfoil**: drop in a coordinate file (Selig or Lednicer .dat) and a polar export (XFLR5/Flow5 or XFOIL). The page reads c_l,max and α_L0 from the polar (switching to a 0°–4° fit when the c_l = 0 crossing is on a separated branch), t/c from the shape, and runs an inviscid panel method as an α_L0 cross-check. Everything stays in your browser.
 - **Compare tab**: two designs side by side (any airfoil, AR, taper), with a metric table, planforms to scale and overlaid lift, deflection and polar charts.
 - **Airfoil polar view**: c_l–α and drag polar with the most heavily loaded section at cruise and landing marked on the airfoil's own data, and the lifting-line 2π model for comparison.
+- **Tail & Trim tab (HW7)**: horizontal-tail design for the wing on the Design tab. Scissor plot (stability, takeoff-rotation and stall-recovery limits) with a draggable design point, requirement checks, tail planform, wing set angle and tail incidence for trimmed cruise at α_FRL = 0, trimmed drag polar, and the six-airfoil HW7 design table.
 - 3D view coloured by gold, section c_l or spar bending stress.
 - Shareable links (the URL stores the design and the comparison), dark and light themes.
 - Fast: the lifting-line solution depends only on AR and taper, so it is solved once per (AR, λ) and cached; grids run in a Web Worker.
@@ -55,9 +56,11 @@ then open http://localhost:8000. (Opening `index.html` directly from disk does n
 python tests/test_reproduce.py       # Python checks (needs numpy)
 node tests/js/test_js_matches_python.mjs   # JavaScript vs Python (needs Node 18+)
 node tests/js/test_importers.mjs           # .dat / polar parsing and the panel method vs Python
+node tests/js/test_tail.mjs                # HW7 tail and trim vs hand calculations and Python
+python tests/test_tail_trim.py             # HW7 golden values (Python)
 ```
 
-After changing anything in `docs/js/`, bump the `?v=` number in `docs/index.html` (import map and main script) so browsers do not mix cached and new modules.
+After changing anything in `docs/js/`, bump the `?v=` number in `docs/index.html` (stylesheet, import map and main script) so browsers do not mix cached and new modules.
 
 If you change the Python model or the airfoil data, regenerate the web data and the reference values first:
 

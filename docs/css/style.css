@@ -310,3 +310,21 @@ table.cmp .u { color: var(--muted); font-weight: 500; font-size: 11px; }
 table.cmp .pct { color: var(--muted); font-size: 11px; }
 .cmp-grid { display: grid; grid-template-columns: 1fr; gap: 8px 24px; }
 @media (min-width: 1500px) { .cmp-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- tail & trim tab ---------- */
+.tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 18px; }
+.tctl { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.tctl select { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface-2); font-weight: 600; }
+.tctl .numbox input { width: 100%; }
+.tctl .numbox { width: 100%; }
+.tctl .tval { font-weight: 650; color: var(--ink); padding: 6px 0; }
+.tctl.invalid .numbox { border-color: var(--bad); }
+.tctl .ctl-msg { display: block; min-height: 0; }
+.tctl.inline { display: inline-grid; width: 150px; }
+.tpoint { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 18px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.tpoint .hint { flex: 1 1 320px; }
+.seg-btn, .linkbtn { border: 1px solid var(--border-strong); background: transparent; color: var(--ink); border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.seg-btn:hover, .linkbtn:hover { border-color: var(--gold); color: var(--gold); }
+.linkbtn { padding: 2px 8px; margin-left: 6px; }
+#t-tbl { font-size: 12.5px; }
+#t-tbl th, #t-tbl td { padding: 8px 6px; }

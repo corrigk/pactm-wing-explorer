@@ -9,12 +9,16 @@ const formFactorLifting = (tc, M) => {
   return 1 + Z * tc + 100 * tc ** 4;
 };
 
-/** C_D0 referenced to the wing area S. Wing Reynolds length is the mean chord S/b. */
-export function computeCD0(V, tcWing, S, b) {
+/** C_D0 referenced to the wing area S. Wing Reynolds length is the mean chord S/b.
+ *  With sHt and cHt (HW7) the horizontal tail is the designed one and the PACTM vertical tail is kept. */
+export function computeCD0(V, tcWing, S, b, sHt = null, cHt = null) {
   const M = V / CONST.aSound;
   const wing = (formFactorLifting(tcWing, M) * CONST.qWing * skinFriction(reynolds(V, S / b)) * wettedLifting(S)) / S;
-  const tail = (formFactorLifting(CONST.tcTail, M) * CONST.qTail * skinFriction(reynolds(V, CONST.cTail))
-    * wettedLifting(CONST.sH + CONST.sV)) / S;
+  const ffT = formFactorLifting(CONST.tcTail, M);
+  const tail = sHt == null
+    ? (ffT * CONST.qTail * skinFriction(reynolds(V, CONST.cTail)) * wettedLifting(CONST.sH + CONST.sV)) / S
+    : (ffT * CONST.qTail * (skinFriction(reynolds(V, cHt)) * wettedLifting(sHt)
+      + skinFriction(reynolds(V, CONST.cTail)) * wettedLifting(CONST.sV))) / S;
   const lam = CONST.lFuse / CONST.dFuse;
   const ffFuse = 0.9 + 5 / lam ** 1.5 + lam / 400;
   const wetFuse = Math.PI * CONST.dFuse * CONST.lFuse * (1 - 2 / lam) ** (2 / 3) * (1 + 1 / lam ** 2);

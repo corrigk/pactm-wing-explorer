@@ -10,6 +10,7 @@ import { drawPlanform, drawSection, drawThumb, colorbarHtml, drawPlanformOverlay
 import { Wing3D } from './wing3d.js';
 import { runJob, bestFor } from './jobs.js';
 import { parseDat, parsePolar, panelAlphaL0 } from './importers.js';
+import { initTail, renderTail, tailState, setTailState, tailDefaultsDiff } from './tailUI.js';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : '—');
@@ -166,6 +167,11 @@ function readHash() {
   const slot = (v) => { const [a, ar, l] = (v || '').split('~'); return AF[a] && +ar > 0 && +l > 0 ? { airfoil: a, AR: +ar, lam: +l } : null; };
   if (h.has('ca') && h.has('cb') && slot(h.get('ca')) && slot(h.get('cb'))) cmp = { A: slot(h.get('ca')), B: slot(h.get('cb')) };
   if (h.get('tab') === 'compare') tab = 'compare';
+  if (h.get('tab') === 'tail') tab = 'tail';
+  const tt = {};
+  for (const [k, v] of h.entries()) if (k.startsWith('t.')) tt[k.slice(2)] = ['ltMode'].includes(k.slice(2)) ? v : (v === 'true' ? true : v === 'false' ? false : +v);
+  const tm = (h.get('tm') || '').split('~');
+  setTailState({ t: tt, ...(tm.length === 2 && +tm[0] > 0 ? { mode: 'manual', manual: { r: +tm[0], xcg: +tm[1] } } : {}) });
   return h.has('AR');
 }
 function hashString() {
@@ -178,6 +184,12 @@ function hashString() {
     h.set('tab', 'compare');
     const s = (d) => `${d.airfoil}~${+(+d.AR).toPrecision(12)}~${+(+d.lam).toPrecision(12)}`;
     h.set('ca', s(cmp.A)); h.set('cb', s(cmp.B));
+  }
+  if (tab === 'tail') {
+    h.set('tab', 'tail');
+    for (const [k, v] of Object.entries(tailDefaultsDiff())) h.set(`t.${k}`, String(v));
+    const ts = tailState();
+    if (ts.mode === 'manual') h.set('tm', `${ts.manual.r}~${ts.manual.xcg}`);
   }
   return `#${h.toString()}`;
 }
@@ -239,8 +251,10 @@ function renderFast() {
     renderPolar(D, p);
     renderCharts(D, p);
     if (mapMsg) mapView.overlay({ AR: ui.AR, lam: ui.lam }, mapMsg.best);
-  } else {
+  } else if (tab === 'compare') {
     renderCompare(p);
+  } else {
+    renderTail();
   }
   writeHash();
 }
@@ -555,8 +569,10 @@ function setTab(t) {
   tab = t;
   $('tab-btn-design').setAttribute('aria-selected', String(t === 'design'));
   $('tab-btn-compare').setAttribute('aria-selected', String(t === 'compare'));
+  $('tab-btn-tail').setAttribute('aria-selected', String(t === 'tail'));
   $('tab-design').hidden = t !== 'design';
   $('tab-compare').hidden = t !== 'compare';
+  $('tab-tail').hidden = t !== 'tail';
   if (t === 'compare') { initCompare(); buildSlots(); }
   renderFast();
   if (t === 'design') { drawMap(); wing3d.request(); }
@@ -753,6 +769,15 @@ $('btn-theme').addEventListener('click', () => {
 });
 $('tab-btn-design').addEventListener('click', () => setTab('design'));
 $('tab-btn-compare').addEventListener('click', () => setTab('compare'));
+$('tab-btn-tail').addEventListener('click', () => setTab('tail'));
+initTail({
+  current: () => { const af = airfoil(), p = params(); return { af, p, on, wing: { S: sizing(af, p).Sreq, AR: ui.AR, lam: ui.lam } }; },
+  onChange: () => scheduleRender(false),
+  airfoilNames: () => Object.keys(AF),
+  airfoil: (name) => airfoil(name),
+  bestWing: (af, p, o) => bestFor(af, p, o),
+  selectAirfoil: (name) => { if (!AF[name]) return; airfoilName = name; $('airfoil').value = name; applyBest(); },
+});
 document.querySelectorAll('[data-pf]').forEach((b) => b.addEventListener('click', () => {
   pfMode = b.dataset.pf;
   document.querySelectorAll('[data-pf]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
@@ -779,4 +804,5 @@ window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer
 const hadDesign = readHash();
 syncInputs();
 if (tab === 'compare') setTab('compare');
+if (tab === 'tail') setTab('tail');
 if (hadDesign) scheduleRender(true); else applyBest();

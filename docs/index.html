@@ -12,28 +12,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=12">
 <!-- Module version: bump v= on every deploy so browsers never mix cached and new modules. -->
 <script type="importmap">
 {
   "imports": {
-    "./js/config.js": "./js/config.js?v=9",
-    "./js/numerics.js": "./js/numerics.js?v=9",
-    "./js/liftingLine.js": "./js/liftingLine.js?v=9",
-    "./js/drag.js": "./js/drag.js?v=9",
-    "./js/spar.js": "./js/spar.js?v=9",
-    "./js/design.js": "./js/design.js?v=9",
-    "./js/airfoilData.js": "./js/airfoilData.js?v=9",
-    "./js/plot.js": "./js/plot.js?v=9",
-    "./js/map.js": "./js/map.js?v=9",
-    "./js/visuals.js": "./js/visuals.js?v=9",
-    "./js/wing3d.js": "./js/wing3d.js?v=9",
-    "./js/jobs.js": "./js/jobs.js?v=9",
-    "./js/importers.js": "./js/importers.js?v=9"
+    "./js/config.js": "./js/config.js?v=12",
+    "./js/numerics.js": "./js/numerics.js?v=12",
+    "./js/liftingLine.js": "./js/liftingLine.js?v=12",
+    "./js/drag.js": "./js/drag.js?v=12",
+    "./js/spar.js": "./js/spar.js?v=12",
+    "./js/design.js": "./js/design.js?v=12",
+    "./js/airfoilData.js": "./js/airfoilData.js?v=12",
+    "./js/plot.js": "./js/plot.js?v=12",
+    "./js/map.js": "./js/map.js?v=12",
+    "./js/visuals.js": "./js/visuals.js?v=12",
+    "./js/wing3d.js": "./js/wing3d.js?v=12",
+    "./js/jobs.js": "./js/jobs.js?v=12",
+    "./js/importers.js": "./js/importers.js?v=12",
+    "./js/tail.js": "./js/tail.js?v=12",
+    "./js/tailUI.js": "./js/tailUI.js?v=12"
   }
 }
 </script>
-<link rel="modulepreload" href="js/main.js?v=9">
+<link rel="modulepreload" href="js/main.js?v=12">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23000'/%3E%3Cpath d='M4 19c6-6 18-7 24-3-8-1-16 0-24 3z' fill='%23cfb991'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -111,6 +113,7 @@
     <nav class="tabs" role="tablist" aria-label="Views">
       <button role="tab" id="tab-btn-design" aria-selected="true" aria-controls="tab-design" type="button">Design</button>
       <button role="tab" id="tab-btn-compare" aria-selected="false" aria-controls="tab-compare" type="button">Compare</button>
+      <button role="tab" id="tab-btn-tail" aria-selected="false" aria-controls="tab-tail" type="button">Tail &amp; Trim</button>
     </nav>
     <div id="tab-design" role="tabpanel" aria-labelledby="tab-btn-design" class="tabpanel">
     <section class="hero" aria-live="polite">
@@ -201,6 +204,48 @@
       </div>
     </div>
 
+
+    <div id="tab-tail" role="tabpanel" aria-labelledby="tab-btn-tail" class="tabpanel" hidden>
+      <section class="hero" aria-live="polite">
+        <div class="status" id="t-status"></div>
+        <div class="kpis" id="t-kpis"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Tail inputs</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="seg-btn" id="t-auto" type="button">Use the selection rule</button><button class="seg-btn" id="t-reset" type="button">Reset tail inputs</button></div></div>
+        <div class="tgrid" id="t-controls"></div>
+        <div class="tpoint">
+          <span class="hint" id="t-mode"></span>
+          <label class="tctl inline"><span>S<sub>t</sub>/S<sub>w</sub></span><span class="numbox"><input type="number" id="t-man-r" step="0.001"></span></label>
+          <label class="tctl inline"><span>x̄<sub>cg</sub></span><span class="numbox"><input type="number" id="t-man-xcg" step="0.005"></span></label>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Requirements</h2><span class="hint">Evaluated at the design point</span></div>
+        <div class="reqs" id="t-reqs"></div>
+      </section>
+      <div class="grid2">
+        <section class="card"><div class="card-head"><h2 class="card-title">Scissor plot</h2><span class="hint">Click or drag to place the design point</span></div>
+          <div class="legend" id="t-scissor-legend"></div><div class="chart" id="t-scissor"></div></section>
+        <section class="card"><div class="card-head"><h2 class="card-title">Trimmed drag polar</h2></div>
+          <div class="legend" id="t-polar-legend"></div><div class="chart" id="t-polar"></div></section>
+      </div>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">All airfoils · HW7 design table</h2><span class="hint" id="t-tbl-note"></span></div>
+        <div class="scroll-x"><table class="tbl" id="t-tbl"></table></div>
+      </section>
+      <section class="card notes">
+        <div class="card-head"><h2 class="card-title">Tail &amp; trim model</h2></div>
+        <ul>
+          <li>Tail: NACA 0012 (symmetric, α<sub>0t</sub> = 0, C<sub>Mac,t</sub> = 0), lift slope C<sub>Lα</sub> = πAR / (1 + √(1 + (πAR/2π)²)); wing slope and span efficiencies from the lifting-line solver.</li>
+          <li>Downwash dε/dα = 2 C<sub>Lα,w</sub> / (π AR<sub>w</sub>); η = 1; fuselage neglected; x̄ values are fractions of the wing MAC, wing AC at 0.25.</li>
+          <li>Reported static margin: lecture form (downwash factor in C<sub>Lα</sub>); the HW7 eq. (3) value is shown alongside. Limits: stability line (HW7 eq. 5 as printed, or the lecture form), takeoff rotation (tail C<sub>L</sub> and required C<sub>M,cg</sub> above, C<sub>L,w</sub> = C<sub>Lα,w</sub> i<sub>w</sub>), stall recovery (C<sub>L,t</sub> = C<sub>Lα,t</sub> α<sub>stall</sub>, C<sub>M,req</sub> = −C<sub>L</sub><sup>max</sup> SM + C<sub>Mac,w</sub>).</li>
+          <li>Selection rule: the smallest S<sub>t</sub>/S<sub>w</sub> whose feasible CG range is at least the minimum width; the CG is placed at the chosen fraction of that range. i<sub>w</sub> makes the trimmed cruise α<sub>FRL</sub> = 0 (fixed-point loop with the takeoff limit).</li>
+          <li>Trimmed drag: C<sub>D</sub> = C<sub>D0</sub> + (C<sub>L,w</sub>)²/(π e<sub>w</sub> AR<sub>w</sub>) + r (C<sub>L,t</sub>)²/(π e<sub>t</sub> AR<sub>t</sub>), with C<sub>D0</sub> rebuilt for the designed tail.</li>
+          <li>Wing C<sub>Mac</sub>: mean polar C<sub>m</sub> over α<sub>L0</sub> to α<sub>L0</sub> + 8° (0° to 8° when α<sub>L0</sub> was fitted). Stall: c<sub>l</sub> loss 4° past the peak (sharp ≥ 15%, gradual ≤ 6%).</li>
+        </ul>
+      </section>
+    </div>
     <section class="card notes">
       <div class="card-head"><h2 class="card-title">Model &amp; assumptions</h2></div>
       <ul>
@@ -242,6 +287,6 @@
   <span>Student project for the PACTM RC airplane. Colours inspired by Purdue; not an official Purdue University website.</span>
   <span><a href="https://github.com/corrigk/pactm-wing-explorer" target="_blank" rel="noopener">Source &amp; Python reference code on GitHub</a></span>
 </footer>
-<script type="module" src="js/main.js?v=9"></script>
+<script type="module" src="js/main.js?v=12"></script>
 </body>
 </html>
