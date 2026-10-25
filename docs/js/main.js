@@ -198,8 +198,13 @@ function applyBest() {
 
 // ---------------------------------------------------------------- render scheduling
 let rafPending = false, heavyNeeded = false;
-/** Next animation frame, or a timer when the page is hidden (frames are paused in background tabs). */
-export const nextFrame = (fn) => (document.hidden ? setTimeout(fn, 0) : requestAnimationFrame(fn));
+export const nextFrame = (fn) => {
+  // Animation frames can stall in hidden, minimized or zero-size windows; a timer guarantees the render.
+  let done = false;
+  const run = () => { if (!done) { done = true; fn(); } };
+  if (!document.hidden) requestAnimationFrame(run);
+  setTimeout(run, document.hidden ? 0 : 60);
+};
 function scheduleRender(heavy) {
   heavyNeeded = heavyNeeded || heavy;
   if (rafPending) return;

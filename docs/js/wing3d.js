@@ -41,8 +41,10 @@ export class Wing3D {
   request() {
     if (this.pending) return;
     this.pending = true;
-    const go = () => { this.pending = false; this.render(); };
-    if (document.hidden) setTimeout(go, 0); else requestAnimationFrame(go);
+    let done = false;
+    const go = () => { if (done) return; done = true; this.pending = false; this.render(); };
+    if (!document.hidden) requestAnimationFrame(go);
+    setTimeout(go, document.hidden ? 0 : 60);
   }
 
   buildMesh() {
